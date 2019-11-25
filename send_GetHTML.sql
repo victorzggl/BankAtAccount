@@ -1,11 +1,7 @@
-use CDS_Send
-go
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
+
 CREATE procedure [dbo].[send_GetHTML] @html_type varchar(10), @throttle int = 50, @email_provider varchar(50) = null
 as
+
 --exec send_GetHTML @html_type = 'EMAIL'
 
 declare @send_status_HTML_CREATED int = (select send_status_id from send_status where code = 'HTML_CREATED'),
@@ -27,7 +23,7 @@ select top(@throttle) s.table_name, s.primary_key, s.html, s.from_email, s.to_em
 			,'{{Tracking_ID}}',isnull(s.account_action_id,''))
 			[email_subject],
 	s.cds_key, s.pdf_path, htt.file_path + s.[file_name] [file_path], s.cc_email, et.code [email_type],
-	s.from_phone, s.to_phone, s.from_phone_user, s.from_phone_password, csv_account_num_list csv_account_num_list
+	s.from_phone, s.to_phone, s.from_phone_user, s.from_phone_password
 from
 	(select 'account_send' [table_name], s.account_send_id [primary_key], s.html_template_version_id, s.html, s2.from_email [from_email], s2.to_email [to_email], s.language_id, co.first_name [first_name], co.last_name [last_name],
 		s.account_id [cds_key], s.pdf_path,
@@ -35,7 +31,7 @@ from
 			when s.account_invoice_id is not null then concat('IGL_',year(ai.[start_date]),'_',right('0' + cast(month(ai.[start_date]) as varchar(2)),2),'_',ai.account_num,'_',s.account_send_id,'.pdf')
 			else concat('account_send.',s.account_send_id,'.account.',s.account_id,'.pdf')
 		end [file_name], null [cc_email], s.account_action_id, a.account_num,
-		null [from_phone], null [to_phone], null [from_phone_user], null [from_phone_password], null csv_account_num_list
+		null [from_phone], null [to_phone], null [from_phone_user], null [from_phone_password]
 	from account_send s
 	join cds.dbo.account a on s.account_id = a.account_id
 	left join cust_send s2 on s.cust_send_id = s2.cust_send_id
@@ -56,7 +52,7 @@ from
 			when htt.code = 'ASSOCIATE_GOV_ID_PEC_ATTACHMENT' then concat('csr_send.',s.csr_send_id,'.csr.',s.csr_id,'.tiff')
 			else concat('csr_send.',s.csr_send_id,'.csr.',s.csr_id,'.pdf')
 		end [file_name], s.cc_email, null [account_action_id], null [account_num],
-		s.from_phone, s.to_phone, scp.[user] [from_phone_user], scp.[password] [from_phone_password], null csv_account_num_list
+		s.from_phone, s.to_phone, scp.[user] [from_phone_user], scp.[password] [from_phone_password]
 	from csr_send s
 	join cds.dbo.csr c on s.csr_id = c.csr_id
 	join cds.dbo.html_template_version htv on s.html_template_version_id = htv.html_template_version_id
@@ -74,7 +70,6 @@ from
 			else concat('cust_send.',s.cust_send_id,'.cust.',s.cust_id,'.pdf')
 		end [file_name], null [cc_email], null [account_action_id], null [account_num],
 		s.from_phone, s.to_phone, ep.[user] [from_phone_user], ep.[password] [from_phone_password]
-		,dbo.send_fn_ConvertAccountSendAccountNumToCsv(cust_send_id) csv_account_num_list
 	from cust_send s
 	join cds.dbo.cust c on s.cust_id = c.cust_id
 	join cds.dbo.html_template_version htv on s.html_template_version_id = htv.html_template_version_id
@@ -92,7 +87,7 @@ from
 
 	select 'ord_account_send' [table_name], s.ord_account_send_id [primary_key], s.html_template_version_id, s.html, null [from_email], null [to_email], s.language_id, oco.first_name, oco.last_name,
 		s.ord_account_id [cds_key], s.pdf_path, concat('ord_account_send.',s.ord_account_send_id,'.ord_account.',s.ord_account_id,'.pdf') [file_name], null [cc_email], null [account_action_id], null [account_num],
-		null [from_phone], null [to_phone], null [from_phone_user], null [from_phone_password], null csv_account_num_list
+		null [from_phone], null [to_phone], null [from_phone_user], null [from_phone_password]
 	from ord_account_send s
 	join cds.dbo.ord_account oa on s.ord_account_id = oa.ord_account_id
 	left join
@@ -106,7 +101,7 @@ from
 
 	select 'ord_cust_send' [table_name], s.ord_cust_send_id [primary_key], s.html_template_version_id, s.html, s.from_email, s.to_email, s.language_id, oco.first_name, oco.last_name,
 		s.ord_cust_id [cds_key], s.pdf_path, concat('ord_cust_send.',s.ord_cust_send_id,'.ord_cust.',s.ord_cust_id,'.pdf') [file_name], s.cc_email, null [account_action_id], null [account_num],
-		s.from_phone, s.to_phone, scp.[user] [from_phone_user], scp.[password] [from_phone_password], null csv_account_num_list
+		s.from_phone, s.to_phone, scp.[user] [from_phone_user], scp.[password] [from_phone_password]
 	from ord_cust_send s
 	join cds.dbo.html_template_version htv on s.html_template_version_id = htv.html_template_version_id
 	join cds.dbo.html_template ht on htv.html_template_id = ht.html_template_id

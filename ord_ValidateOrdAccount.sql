@@ -1,9 +1,4 @@
-use CDS
-go
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
+
 CREATE procedure [dbo].[ord_ValidateOrdAccount] @ord_account_id int = null, @ErrorReturned varchar(max) = null output 
 as
 
@@ -73,6 +68,7 @@ join ord_cust oc on oa.ord_cust_id = oc.ord_cust_id
 where oa.ord_account_status_id = @ord_account_status_id_SEND_ESCO
 and not (oa.bank_type_id is not null
 	and nullif(oa.bank_account,'') is not null
+	and oc.bank_reg_key is not null
 	and c.signed_date is not null)
 
 --Set ord_account record to SEND_ESCO if all CUST data is set
@@ -83,6 +79,7 @@ join ord_cust oc on oa.ord_cust_id = oc.ord_cust_id
 where oa.ord_account_status_id = @ord_account_status_id_SEND_CUST
 and oa.bank_type_id is not null
 and nullif(oa.bank_account,'') is not null
+and oc.bank_reg_key is not null
 and c.signed_date is not null
 
 select distinct oa.utility_id, oa.esco_id, oa.commodity_id, oa.account_num

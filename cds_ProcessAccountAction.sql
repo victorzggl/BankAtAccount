@@ -1,9 +1,3 @@
-use CDS
-go
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 
 CREATE procedure [dbo].[cds_ProcessAccountAction] @file_batch_id int = null, @TranCode varchar(50) = null, @FileTypeCode varchar(50) = null, @Error varchar(max) = '' output
 as
@@ -935,7 +929,7 @@ while @i <= @Total
 
 							insert into cust_account (cust_id, account_id, [start_date], account_name)
 							select @destination_cust_id, @account_id, @effective_date, @account_name
--- 							TODO THINK ABOUT THIS
+
 							update a set bank_id = null from cds.dbo.account a where account_id = @account_id
 						end
 						if @Error = ''

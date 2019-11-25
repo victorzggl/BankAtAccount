@@ -1,10 +1,5 @@
-use CDS_515
-go
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-alter procedure cds515_SyncInsertSpCdsBank as
+
+CREATE procedure cds515_SyncInsertSpCdsBank as
 
 declare
 	@max_id                         int, @min_id int,
@@ -28,7 +23,6 @@ declare
 	, @bank_account_name            varchar(100)
 select @max_id = max(id) , @min_id = min(id)
 from #bank
-where 1 = 0 -- SP DESTROYED NO INSERTS ALLOWED.
 while @min_id <= @max_id
 	begin
 		begin try
@@ -36,9 +30,10 @@ while @min_id <= @max_id
 				 , @error = null, @cds_bank_id = null, @validated_flag = validated_flag, @bank_reg_key = bank_reg_key, @bank_account_name = bank_account_name
 			from #bank a
 			where a.id = @min_id
-			/*exec cds.dbo.cds_InsertBank @csr_id = null, @cust_id = @cust_id, @bank_type_id = @bank_type_id,@description = @description,@sync_status_id = @UPDATED_sync_status_id
+
+			exec cds.dbo.cds_InsertBank @csr_id = null, @cust_id = @cust_id, @bank_type_id = @bank_type_id,@description = @description,@sync_status_id = @UPDATED_sync_status_id
 			, @import_bank_id = @import_bank_id, @ord_source_id = @order_source_id, @bank_reg_key = @bank_reg_key, @bank_account = @bank_account, @bank_id = @cds_bank_id output, @error = @error output
-			, @bank_account_name = @bank_account_name*/
+			, @bank_account_name = @bank_account_name
 			if nullif(@error,'') is not null
 				begin
 					;throw 50515, @error, 1

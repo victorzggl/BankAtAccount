@@ -1,9 +1,4 @@
-use CDS
-go
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
+
 CREATE procedure [dbo].[cds_InsertAccountActionMaster] @TranCode varchar(50) , @InsertFlag bit = 0--This flag doesn't work for REINSTATE_RSP since it uses account_action_id
 as
 
@@ -137,13 +132,10 @@ begin
 	join utility u on u.utility_id = a.utility_id
 	join esco_utility_commodity euc on euc.esco_id = a.esco_id and euc.utility_id = a.utility_id and euc.commodity_id = a.commodity_id
 	join utility_file_setup fs on fs.esco_id = a.esco_id and fs.utility_id = a.utility_id and fs.commodity_id = a.commodity_id
-
-	cross apply dbo.cds_fn_GetActiveBankForAccount (a.account_id, null, 1) b
-	where b.account_id = a.account_id /*do not pass @cust_id to cds_fn_GetActiveBankForAccount in case a different cust added this cust's account to their bank_contract */
-	and s.code in('SENT_ESCO','RESENT_ESCO','REINSTATEMENT_ESCO')-- *****could include holds for reporting but removed below if inserting into account_action ****
+	where s.code in('SENT_ESCO','RESENT_ESCO','REINSTATEMENT_ESCO')-- *****could include holds for reporting but removed below if inserting into account_action ****
 	and fs.create_enroll_req_flag = 1
 	and (euc.no_enroll_start_day is null or day(getdate()) not between euc.no_enroll_start_day and euc.no_enroll_end_day)
-
+	and exists (select * from bank b join bank_status bs on bs.bank_status_id = b.bank_status_id where bs.code = 'ACTIVE' and b.cust_id = a.cust_id and b.validated_date < dateadd(day,-1,getdate()))
 	and exists (select * from account_contract ac where a.account_id = ac.account_id and ac.end_date is null)
 	and (c.code = 'E'
 		or (c.code = 'G' and a.sii_precheck_account_type_id is not null /*and a.axpo_esco_gas_id is not null*/ and a.utility_sub_id is not null and a.gas_use_type_id is not null and a.area_meter_num is not null and nullif(a.meter_num,'') is not null))
@@ -171,7 +163,7 @@ begin
 		or (bc.bill_cycle_year = year(getdate()) and bc.bill_cycle_month = month(getdate()) and aa.tran_date <= bc.meter_read_date))
 	and fs.create_enroll_req_flag = 1
 	and (euc.no_enroll_start_day is null or day(getdate()) not between euc.no_enroll_start_day and euc.no_enroll_end_day)
-	and exists (select * from bank b join bank_status bs on bs.bank_status_id = b.bank_status_id where bs.code = 'ACTIVE' and b.cust_id = a.cust_id) -- todo replace with function
+	and exists (select * from bank b join bank_status bs on bs.bank_status_id = b.bank_status_id where bs.code = 'ACTIVE' and b.cust_id = a.cust_id and b.validated_date < dateadd(day,-1,getdate()))
 	and exists (select * from account_contract ac where a.account_id = ac.account_id and ac.end_date is null)
 	and (c.code = 'E'
 		or (c.code = 'G' and a.sii_precheck_account_type_id is not null /*and a.axpo_esco_gas_id is not null*/ and a.utility_sub_id is not null and a.gas_use_type_id is not null and a.area_meter_num is not null and nullif(a.meter_num,'') is not null))

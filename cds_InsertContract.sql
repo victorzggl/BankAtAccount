@@ -1,12 +1,6 @@
-use CDS
-go
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
 
-alter procedure cds_InsertContract @product_id int, @start_date date ,@email	varchar(255), @bank_account varchar(100),@account_num varchar(50),@facility_id int, @commodity_id int, @personal_tax_num varchar(100) ,@business_tax_num varchar(100)
-,@Process varchar(255) = 'cds_InsertContract' , @contract_id int = null output, @Error varchar(max) = null output, @signatory_ord_contact_id int
+create procedure cds_InsertContract @product_id int, @start_date date ,@email	varchar(255), @bank_account varchar(100),@account_num varchar(50),@facility_id int, @commodity_id int, @personal_tax_num varchar(100) ,@business_tax_num varchar(100)
+,@Process varchar(255) = 'cds_InsertContract' , @contract_id int = null output ,@Error varchar(max) = null output
   as
 declare @run_time datetime = getdate()
   ,@NEW_contract_status_id int = (select contract_status_id from contract_status where code = 'NEW')
@@ -25,9 +19,9 @@ if nullif(@Error,'') is null
   begin
 		begin try
 			insert into [contract] (contract_status_id, product_id, [start_date], inserted_date, proposed_flow_date, contract_email, sync_status_id,
-											bank_account, account_num, facility_id, commodity_id, personal_tax_num, business_tax_num, signatory_ord_contact_id)
+											bank_account, account_num, facility_id, commodity_id, personal_tax_num, business_tax_num)
 			select @NEW_contract_status_id, @product_id, @start_date, @run_time, cds.dbo.cds_fn_ProposedFlowDate(@run_time), @email email, @NEW_sync_status_id,
-				@bank_account, @account_num	, @facility_id, @commodity_id, @personal_tax_num, @business_tax_num, @signatory_ord_contact_id
+				@bank_account, @account_num	, @facility_id, @commodity_id, @personal_tax_num, @business_tax_num
 
 			set @contract_id = scope_identity()
 		end try
