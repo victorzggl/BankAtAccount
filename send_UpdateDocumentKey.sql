@@ -1,4 +1,9 @@
-
+use CDS_Send
+go
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
 CREATE procedure [dbo].[send_UpdateDocumentKey] @table_name varchar(50), @primary_key int, @document_key varchar(100), @error_message varchar(max) = null
 as
@@ -134,6 +139,14 @@ begin
 		begin try
 			update cust_send set document_key = @document_key, send_status_id = @send_status_id where cust_send_id = @primary_key
 
+			-- TODO @DavidN: WHY WE DON'T CHECK if @document_key IS NOT NULL?
+			update c set document_key = @document_key
+			from cds.dbo.bank_contract c
+			join CDS_Send.dbo.cust_send s on c.bank_contract_id = s.bank_contract_id
+			where s.cust_send_id = @primary_key
+
+
+
 			if @error_message is not null
 				insert into send_error (table_name, table_id, error) select @table_name, @primary_key, @error_message
 		end try
@@ -157,8 +170,8 @@ begin
 	if @error is null
 	begin
 		begin try
-			update ord_account_send 
-			set document_key = @document_key, 
+			update ord_account_send
+			set document_key = @document_key,
 				send_status_id = @send_status_id,
 				sent_date = case when @error_message is null then getdate() else sent_date end
 			where ord_account_send_id = @primary_key
@@ -221,4 +234,3 @@ begin
 end
 
 go
-

@@ -1,8 +1,14 @@
-
+use CDS_Send
+go
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 CREATE procedure [dbo].[send_GetFieldData]
 as
 
 declare @send_status_PENDING int = (select send_status_id from send_status where code = 'PENDING')
+
 
 select 'account_send' [table_name], acs.account_send_id [primary_key], acs.html_template_version_id, acs.language_id,
 	a.account_name [ACCOUNT_NAME],
@@ -183,7 +189,7 @@ select 'cust_send' [table_name], cs.cust_send_id [primary_key], cs.html_template
 	null [ACCOUNT_NUM],
 	c.[address] [ADDRESS],
 	null [BACK_IMAGE_FORMAT],
-	isnull(b.bank_account,bt.bank_account) [BANK_ACCOUNT],
+	isnull(bc.bank_account,bt.bank_account) [BANK_ACCOUNT],
 	bt.tran_amount [BANK_TRANSACTION_AMOUNT],
 	dateadd(day,3,cast(getdate() as date)) [BANK_TRANSACTION_DUE_DATE],
 	null [BIRTH_CITY],
@@ -243,6 +249,7 @@ left join cds.dbo.country bc on c.birth_country_id = bc.country_id
 left join cds.dbo.[state] s on c.state_id = s.state_id
 left join cds.dbo.esco e on c.esco_id = e.esco_id
 left join cds.dbo.country c2 on c.country_id = c2.country_id
+left join cds.dbo.bank_contract bc on bc.bank_contract_id = cs.bank_contract_id
 left join
 	(select c.*
 	from cds.dbo.contact c

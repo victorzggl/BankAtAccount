@@ -5,13 +5,12 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 
-alter procedure [dbo].[ord_InsertAccount] as
+alter procedure dbo.ord_InsertAccount as
 
 --If the control is over an hour old bypass it
 if exists (select * from cds_control where ord_account_status_SP_run_date > dateadd(hour,-1,getdate()))
 	begin
 		raiserror('ord_account_status_SP_run_date is too recent to run this SP',11,-1);
-		return 0;
 	end
 
 update cds_control set ord_account_status_SP_run_date = getdate()
@@ -113,14 +112,18 @@ declare
 	@personal_tax_num varchar(50),
 	@business_tax_num varchar(50),
 	@bank_authorization_key varchar(100),
-	@bank_id int,
-	@bank_reg_key varchar(100),
 	@bank_account varchar(100),
 	@gas_use_type_id int,
 	@meter_num varchar(100),
 	@document_key varchar(100),
 	@utility_sub_id int,
-	@bank_account_name varchar(100)
+	@bank_account_name varchar(100),
+	@bank_contract_id int,
+	@signed_date date,
+	@signatory_email varchar(255),
+	@signatory_name varchar(100),
+	@signatory_contact_id int,
+	@signatory_personal_tax_num varchar(100)
 
 
 create table #account(
@@ -199,13 +202,17 @@ create table #account(
 	personal_tax_num varchar(50) NULL,
 	business_tax_num varchar(50) NULL,
 	bank_authorization_key varchar(100) NULL,
-	bank_reg_key varchar(100) NULL,
 	bank_account varchar(100) NULL,
 	gas_use_type_id int NULL,
 	meter_num varchar(100) NULL,
 	document_key varchar(100) NULL,
 	utility_sub_id int NULL,
-	bank_account_name varchar(100) not null
+	bank_account_name varchar(100) null,
+	bank_contract_id int null,
+	signatory_email varchar(255) null,
+	signatory_name varchar(100) null,
+	signatory_personal_tax_num varchar(100) null,
+	signatory_contact_id int null
 	)
 
 create nonclustered index IX_AccountNumUtilityIDCommodityIDEscoID on #account (account_num, utility_id, commodity_id, esco_id)
@@ -286,13 +293,16 @@ insert into #account
 	personal_tax_num,
 	business_tax_num,
 	bank_authorization_key,
-	bank_reg_key,
 	bank_account,
 	gas_use_type_id,
 	meter_num,
 	document_key,
 	utility_sub_id,
-	bank_account_name
+	bank_account_name,
+	signatory_email,
+	signatory_name,
+	signatory_personal_tax_num,
+	signatory_contact_id
 	)
 select
 	oa.ord_account_id
@@ -369,13 +379,16 @@ select
 	,upper(oa.personal_tax_num)
 	,upper(oa.business_tax_num)
 	,oa.bank_authorization_key
-	,oc.bank_reg_key
 	,oa.bank_account
 	,oa.gas_use_type_id
 	,oa.meter_num
 	,c.document_key
 	,oa.utility_sub_id
 	,oa.bank_account_name
+	,c.contract_email signatory_email
+	,oct.first_name + ' ' + oct.last_name signatory_name
+	,oct.personal_tax_num signatory_personal_tax_num
+	,con.contact_id signatory_contact_id
 from ord_account oa
 join utility u on u.utility_id = oa.utility_id
 join ord_account_status os on os.ord_account_status_id = oa.ord_account_status_id
@@ -393,6 +406,8 @@ left join account_status s on s.account_status_id = a.account_status_id
 left join account a2 on a2.account_id = oa.account_id
 left join account_status s2 on s2.account_status_id = a2.account_status_id
 left join street_part sp on sp.name = oa.street_part
+left join ord_contact oct on oct.ord_contact_id = c.signatory_ord_contact_id
+left join (select cust_id, first_name, last_name, max(contact_id) contact_id from contact group by cust_id, first_name, last_name ) con on con.cust_id = oc.cust_id and con.first_name = oct.first_name and con.last_name = oct.last_name
 left join
 	(select ut.*
 	from utility_tax ut
@@ -401,11 +416,9 @@ left join
 
 where oa.bank_type_id is not null
 and nullif(oa.bank_account,'') is not null
-and oc.bank_reg_key is not null
+and nullif(oa.bank_account_name,'') is not null
 and os.code = 'SEND_ESCO'
 and c.signed_date is not null
---and vs.code = 'GOOD'
---and ps.code = 'GOOD'
 and euc.cds_active_flag = 1
 and csr.test_csr_flag = 0
 order by oa.ord_account_id
@@ -423,7 +436,7 @@ while @i <= @total
 		set @DataErrorFlag = 0
 		set @Error = ''
 		set @ord_account_error_desc_id = null
-		set @bank_id = null
+		set @bank_contract_id = null
 
 		select
 			@ord_account_id = ord_account_id,
@@ -499,23 +512,58 @@ while @i <= @total
 			@personal_tax_num = personal_tax_num,
 			@business_tax_num = business_tax_num,
 			@bank_authorization_key = bank_authorization_key,
-			@bank_reg_key = bank_reg_key,
 			@bank_account = bank_account,
 			@gas_use_type_id = gas_use_type_id,
 			@meter_num = meter_num,
 			@document_key = document_key,
 			@utility_sub_id = utility_sub_id,
-			@bank_account_name = bank_account_name
+			@bank_account_name = bank_account_name,
+			@signatory_email = signatory_email,
+		 	@signatory_name = signatory_name,
+		 	@signatory_contact_id = signatory_contact_id,
+		 	@signatory_personal_tax_num = signatory_personal_tax_num
 		from #account
 		where id = @i
 
-		--set bank_id (will insert new row in bank if no row exists)
-		exec cds_InsertBank @cust_id = @cust_id, @bank_type_id = @bank_type_id, @bank_reg_key = @bank_reg_key, @bank_account = @bank_account, @description = '', @signed_date = @verif_date, @document_key = @document_key, @bank_id = @bank_id output, @bank_account_name = @bank_account_name, @error = @bank_error output
 
-	if @bank_id is null
+
+
+
+
+	if nullif(@signatory_name,'') is null or nullif(@signatory_personal_tax_num,'') is null
+	begin
+		set @DataErrorFlag = 1
+		--TODO @GregG: PersonalTaxNum at OrdContact this is a required field for x contact types. A hack will be needed until these values are provided.
+		select @Error += '-@signatory_name or -@signatory_personal_tax_num is null but required contract signature must match name ord_contact'
+	end
+
+
+	if @signatory_contact_id is null
 		begin
 			set @DataErrorFlag = 1
-			select @Error += '-@bank_id is null but required' + isnull(@bank_error,'')
+			select @Error += '-@signatory_contact_id is null but required contract signature must exist in contact'
+		end
+
+	if @bank_contract_id is null and @DataErrorFlag = 0
+		begin
+			exec cds_InsertBankContract
+			 @cust_id = @cust_id,
+			 @bank_type_id = @bank_type_id,
+			 @bank_account = @bank_account,
+			 @bank_account_name = @bank_account_name,
+			 @document_key = @document_key,
+			 @signed_date = @signed_date,
+			 @signatory_email = @signatory_email,
+			 @signatory_name = @signatory_name,
+			 @signatory_contact_id = @signatory_contact_id,
+			 @signatory_personal_tax_num = @signatory_personal_tax_num,
+			 @bank_contract_id = @bank_contract_id output,
+			 @error = @bank_error output
+		end
+	if @bank_contract_id is null
+		begin
+			set @DataErrorFlag = 1
+			select @Error += '-@bank_contract_id is null but required' + isnull(@bank_error,'')
 		end
 
 	--********************This should moved into ord_ValidateOrdAccount once tax rates are automatically gotten from website but right now they are done manually so needs to be delayed*****************
@@ -591,7 +639,6 @@ while @i <= @total
 					country_id,
 					personal_tax_num,
 					business_tax_num,
-					bank_id,
 					gas_use_type_id,
 					meter_num,
 					utility_sub_id
@@ -654,7 +701,6 @@ while @i <= @total
 					@country_id,
 					@personal_tax_num,
 					@business_tax_num,
-					@bank_id,
 					@gas_use_type_id,
 					@meter_num,
 					@utility_sub_id
@@ -682,6 +728,15 @@ while @i <= @total
 			set @Process = 'UPDATE cds.dbo.account @esco_account_num'
 			begin try
 				update account set esco_account_num = @esco_account_num, crg_AccntRecNum = @crg_AccntRecNum where account_id = @account_id
+			end try
+
+			begin catch
+				EXECUTE dba_InsertProcError @ProcName, @Process
+			end catch
+
+			set @Process = 'INSERT cds.dbo.account_bank_contract @account_id, @bank_contract_id'
+			begin try
+				exec cds_InsertAccountBankContract @account_id = @account_id, @bank_contract_id = @bank_contract_id, @error = @Error output
 			end try
 
 			begin catch
@@ -990,13 +1045,16 @@ while @i <= @total
 												from account a
 												where a.account_id = @account_id
 
+
+												exec cds_InsertAccountBankContract @account_id = @account_id, @bank_contract_id = @bank_contract_id, @error = @Error output
+
 												update account_contract set end_date = case when dateadd(day,-1,@contract_start_date) < [start_date] then [start_date] else dateadd(day,-1,@contract_start_date) end
 												where contract_id <> isnull(@contract_id,0)
 												and account_id = @account_id 
 												and end_date is null
 
 												if @contract_id is not null
-													begin
+													begin -- TODO ADD A CALL to  dbo.cds_InsertAccountBankContract
 														if not exists (select 1 from account_contract where contract_id = @contract_id and account_id = @account_id)
 															begin
 																insert into account_contract (contract_id, account_id, [start_date])
@@ -1007,6 +1065,8 @@ while @i <= @total
 														where contract_id = @contract_id
 														and account_id = @account_id
 														and end_date is not null
+
+
 													end
 
 												insert into account_note (account_id, emp_id, account_note_type_id, note_date, note)
