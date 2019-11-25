@@ -1,0 +1,2 @@
+TODO @MatteoG:  Nothing in the code stops inserting an account_id for a bank_contract that does not belong to the cust_id of the bank_contract
+    IE cust A can authorize for Cust B account. The contract would flow through as normal

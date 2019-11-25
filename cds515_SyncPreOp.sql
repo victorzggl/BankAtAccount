@@ -1,5 +1,10 @@
-
-CREATE procedure [dbo].[cds515_SyncPreOp] @table_name varchar(255), @sync_operation_sync_status_id int, @string_output_only_flag bit = 0
+use CDS_515
+go
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+alter procedure [dbo].[cds515_SyncPreOp] @table_name varchar(255), @sync_operation_sync_status_id int, @string_output_only_flag bit = 0
 															 	,@SyncPreOp_insert_string_output varchar(max) = '' output
 																,@SyncPreOp_select_string_output varchar(max) = '' output
 																,@SyncPreOp_alter_temp_table_string varchar(max) = '' output
@@ -242,7 +247,7 @@ else
 													and a.id = @min_id
 
 													execute cds.dbo.cds_InsertContract @product_id	 = @product_id, @start_date = @start_date, @email = @email, @bank_account = @bank_account, @account_num = @account_num, @facility_id = @facility_id, @commodity_id = @commodity_id, @personal_tax_num = @personal_tax_num, @business_tax_num = @business_tax_num,@Process = @Process
-														,@contract_id = @contract_id output,@Error = @Error output
+														,@contract_id = @contract_id output,@Error = @Error output -- todo add ord_contact_id
 
 
 													update #order_account set contract_id = @contract_id where id = @min_id
@@ -299,5 +304,7 @@ else
 					end
 			end
 	end
+
+
 go
 

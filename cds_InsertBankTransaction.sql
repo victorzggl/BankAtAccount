@@ -1,5 +1,10 @@
-
-CREATE procedure [dbo].[cds_InsertBankTransaction] @bank_id int, @bank_transaction_type_id int, @amount decimal(18,2), @bank_transaction_id int = null output, @error varchar(500) = null output, @approval_override_flag bit = 0
+use CDS
+go
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+alter procedure dbo.[cds_InsertBankTransaction] @bank_id int, @bank_transaction_type_id int, @amount decimal(18,2), @bank_transaction_id int = null output, @error varchar(500) = null output, @approval_override_flag bit = 0, @bank_contract_id int = null
 as
 
 /*
@@ -15,7 +20,7 @@ select @bank_transaction_id [bank_transaction_id], @error [error]
 
 declare @bank_transaction_status_id int,
 		@bank_status_PENDING int = (select bank_status_id from bank_status where code = 'PENDING'),
-		@bank_status varchar(50) = (select bs.code from bank b join bank_status bs on b.bank_status_id = bs.bank_status_id where b.bank_id = @bank_id),
+		@bank_status varchar(50),
 		@bank_transaction_type varchar(50) = (select code from bank_transaction_type where bank_transaction_type_id = @bank_transaction_type_id)
 
 select @bank_transaction_status_id = bank_transaction_status_id 
@@ -24,8 +29,22 @@ where code = case when @bank_transaction_type in ('VALIDATION_PAYMENT','VALIDATI
 
 select @bank_transaction_id = null, @error = ''
 
-if @bank_status is null
-	set @error += '; must be valid bank_id'
+
+
+if @bank_id is not null or @bank_contract_id is not null
+begin
+
+	select @bank_id = bank_id, @bank_contract_id = bank_contract_id
+	from dbo.cds_fn_GetActiveBankContract (@bank_id, null, @bank_contract_id ) gabc
+
+	if @bank_id is null
+		set @error += '; bank record must have an ACTIVE bank_contract'
+end
+else
+	set @error += '; must be valid bank_id or bank_contract_id'
+
+set @bank_status = (select bs.code from bank b join bank_status bs on b.bank_status_id = bs.bank_status_id where b.bank_id = @bank_id)
+
 
 if @bank_transaction_type is null
 	set @error += '; must be valid bank_transaction_type_id'
@@ -44,8 +63,8 @@ begin
 	if @bank_transaction_type in ('PAYMENT','VALIDATION_PAYMENT')
 		set @amount = -@amount
 
-	insert into bank_transaction (bank_id, bank_transaction_type_id, bank_transaction_status_id, tran_amount, tran_date)
-	select @bank_id, @bank_transaction_type_id, @bank_transaction_status_id, @amount, getdate()
+	insert into bank_transaction (bank_id, bank_transaction_type_id, bank_transaction_status_id, tran_amount, tran_date, bank_contract_id)
+	select @bank_id, @bank_transaction_type_id, @bank_transaction_status_id, @amount, getdate(), @bank_contract_id
 
 	set @bank_transaction_id = SCOPE_IDENTITY()
 

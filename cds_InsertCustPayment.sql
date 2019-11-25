@@ -1,5 +1,10 @@
-
-CREATE procedure [dbo].[cds_InsertCustPayment] @cust_id int, @cust_payment_type_id int, @payment_date datetime = null, @payment_amount decimal(18,2), @settlement_date date = null, @tran_num varchar(100) = null, @inserted_by varchar(100) = null, @cust_payment_id int = null output, @error varchar(500) = null output
+use CDS
+go
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+alter procedure [dbo].[cds_InsertCustPayment] @cust_id int, @cust_payment_type_id int, @payment_date datetime = null, @payment_amount decimal(18,2), @settlement_date date = null, @tran_num varchar(100) = null, @inserted_by varchar(100) = null, @cust_payment_id int = null output, @error varchar(500) = null output, @bank_contract_id int = null
 as 
 
 /*
@@ -10,10 +15,10 @@ exec cds_InsertCustPayment @cust_id = 0, @cust_payment_type_id = 2, @payment_dat
 select @cust_payment_id [cust_payment_id], @error [error]
 */
 
-select @cust_payment_id = null, @error = '', @tran_num = rtrim(@tran_num)
+select @cust_payment_id = null, @error = ''
 
 declare @cust_payment_type varchar(50) = (select code from cust_payment_type where cust_payment_type_id = @cust_payment_type_id),
-		@bank_id int = (select b.bank_id from bank b join bank_status bs on b.bank_status_id = bs.bank_status_id where b.cust_id = @cust_id and bs.code = 'ACTIVE'),
+		@bank_id int,
 		@invoice_balance_due decimal(18,2)
 
 if @inserted_by is null
@@ -48,11 +53,19 @@ if @payment_amount is null or @payment_amount <= 0
 if exists (select * from cust_payment where tran_num = @tran_num)
 	set @error += 'Transaction number has already been entered; '
 
-if @cust_payment_type = 'INTERNAL_BANK_TRANSACTION' and @bank_id is null
-	set @error += 'An ACTIVE bank account is required for Internal Bank Transaction; '
+if @cust_payment_type = 'INTERNAL_BANK_TRANSACTION'
+begin
+	if not exists(select 1 from bank_contract bc where bank_contract_id = @bank_contract_id)
+		set @error += 'A bank_contract_id is required for Internal Bank Transaction; '
 
-if @cust_payment_type = 'INTERNAL_BANK_TRANSACTION' and @payment_amount > isnull(@invoice_balance_due,0) and @inserted_by <> 'SYSTEM'
-	set @error += 'Payment amount cannot be greater than invoice balance due; '
+	set  @bank_id = (select top (1) bank_id from dbo.cds_fn_GetActiveBankContract (null, @cust_id, @bank_contract_id))
+
+	if @bank_id is null
+		set @error += 'An ACTIVE bank account is required for Internal Bank Transaction; '
+
+	if @payment_amount > isnull(@invoice_balance_due,0) and @inserted_by <> 'SYSTEM'
+		set @error += 'Payment amount cannot be greater than invoice balance due; '
+end
 
 if @cust_payment_type in ('CUSTOMER_BANK_TRANSACTION','CREDIT_CARD') and @tran_num is null
 	set @error += 'Tran number is required; '
@@ -67,7 +80,7 @@ begin
 		declare @bank_transaction_type_id int = (select bank_transaction_type_id from bank_transaction_type where code = 'WITHDRAW'),
 				@bank_transaction_id int
 
-		exec cds_InsertBankTransaction @bank_id = @bank_id, @bank_transaction_type_id = @bank_transaction_type_id, @amount = @payment_amount, @bank_transaction_id = @bank_transaction_id output, @error = @error output, @approval_override_flag = 1
+		exec cds_InsertBankTransaction @bank_id = @bank_id, @bank_transaction_type_id = @bank_transaction_type_id, @amount = @payment_amount, @bank_transaction_id = @bank_transaction_id output, @error = @error output, @approval_override_flag = 1, @bank_contract_id = @bank_contract_id
 
 		if @bank_transaction_id is not null
 		begin
@@ -80,7 +93,7 @@ begin
 		end
 		else
 		begin
-			set @error = 'Failed to create bank transaction; '
+			set @error = isnull(@error, 'Failed to create bank transaction; ')
 		end
 	end
 

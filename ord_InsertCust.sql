@@ -4,7 +4,7 @@ SET ANSI_NULLS ON
 GO
 SET QUOTED_IDENTIFIER ON
 GO
-alter procedure [dbo].[ord_InsertCust] @ord_cust_id int = null
+CREATE procedure [dbo].[ord_InsertCust] @ord_cust_id int = null
 as 
 
 declare	@ProcName varchar(100) = 'ord_InsertCust', 
@@ -38,7 +38,6 @@ declare
 	@language_id int,
 	@birth_date date,
 	@birth_country_id int,
-	@bank_reg_key varchar(100),
 	@personal_tax_num varchar(100),
 	@business_tax_num varchar(100)
 
@@ -68,7 +67,6 @@ create table #cust(
 	language_id int NULL,
 	birth_date date NULL,
 	birth_country_id int NULL,
-	bank_reg_key varchar(100) NULL,
 	personal_tax_num varchar(100) null,
 	business_tax_num varchar(100) null
 	)
@@ -98,7 +96,6 @@ insert into #cust
 		   ,language_id
 		   ,birth_date
 		   ,birth_country_id
-		   ,bank_reg_key
 		   ,personal_tax_num
 		   ,business_tax_num
 )
@@ -127,7 +124,6 @@ select
 	,oc.language_id
 	,oc.birth_date
 	,oc.birth_country_id
-	,oc.bank_reg_key
     ,upper(isnull(c.personal_tax_num,oc.personal_tax_num))
     ,upper(isnull(c.business_tax_num,oc.business_tax_num))
 from ord_cust oc
@@ -135,22 +131,18 @@ left join cust c on c.cust_num = oc.cust_num
 where oc.cust_id is null
 and (oc.ord_cust_id = @ord_cust_id or @ord_cust_id is null)
 and oc.cust_num is not null
-and oc.bank_reg_key is not null
-and nullif(oc.bank_account,'') is not null
 --Make sure the ord_cust has an account that is either ready to send to CDS or has already been sent
 and exists(select 1 from ord_account oa
 					join ord_account_status s on s.ord_account_status_id = oa.ord_account_status_id
-					--join ord_verif_status vs on vs.ord_verif_status_id = oa.ord_verif_status_id
-					--join ord_post_close_status ps on ps.ord_post_close_status_id = oa.ord_post_close_status_id 
 					join [contract] c on c.contract_id = oa.contract_id
 					join csr on oa.csr_id = csr.csr_id
 					where oa.ord_cust_id = oc.ord_cust_id 
 					and (oa.account_id is not null 
 					or (s.code = 'SEND_ESCO'
-						--and vs.code = 'GOOD'
-						--and ps.code = 'GOOD'
 						and oa.bank_type_id is not null
 						and c.signed_date is not null
+						and nullif(oa.bank_account_name,'') is not null
+						and nullif(oa.bank_account,'') is not null
 						and csr.test_csr_flag = 0)))
 
 declare @i int, @total int
@@ -186,7 +178,6 @@ while @i <= @total
 			@language_id = language_id,
 			@birth_date = birth_date,
 			@birth_country_id = birth_country_id,
-			@bank_reg_key = bank_reg_key,
 		    @personal_tax_num = personal_tax_num,
 		    @business_tax_num = business_tax_num
 		from #cust
@@ -219,7 +210,6 @@ while @i <= @total
 				   ,language_id
 				   ,birth_date
 				   ,birth_country_id
-				   ,bank_reg_key
 				   ,personal_tax_num
 				   ,business_tax_num
 				   )
@@ -245,7 +235,6 @@ while @i <= @total
 					@language_id,
 					@birth_date,
 					@birth_country_id,
-					@bank_reg_key,
 				    @personal_tax_num,
 				    @business_tax_num
 
