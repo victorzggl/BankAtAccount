@@ -1,4 +1,6 @@
 use CDS
+go
+
 
 create table dbo.bank_contract_status (
 bank_contract_status_id int identity constraint PK_bank_contract_status primary key,
@@ -72,11 +74,6 @@ create unique index [IX_AccountIdEndDate] on account_bank_contract(account_id, e
 
 	alter table dbo.bank_transaction add bank_contract_id int null constraint [FK_bank_transaction_bank_contract] references bank_contract
 
-	update c set document_key = null from contract c where document_key = ''
-
-	create unique index [UX_DocumentKey] on dbo.contract (document_key) where (document_key is not null)
-
-	drop index dbo.bank.UQ_BankIDCustID
 	drop index CDS_515.dbo.bank.UQ_BankIDCustID
 
 -- existing tables

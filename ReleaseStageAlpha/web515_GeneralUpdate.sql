@@ -7,4 +7,4 @@ alter table dbo.contract add SignatoryOrdContactId int null
 
 alter table dbo.contact add PersonalTaxNum varchar(100) null
 
-create unique index [UX_DocumentKey] on dbo.contract (DocumentKey) where (DocumentKey is not null)
+create unique index dbo.[UX_DocumentKey] on dbo.contract (DocumentKey) where (DocumentKey is not null)

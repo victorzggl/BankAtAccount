@@ -1,7 +1,0 @@
-use CDS
-go
-SET ANSI_NULLS ON
-GO
-SET QUOTED_IDENTIFIER ON
-GO
-create procedure dbo.cds_EndAccountBankContract as -- TODO MAY NOT BE NEEDED
