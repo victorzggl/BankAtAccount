@@ -1,3 +1,7 @@
+-- noinspection SqlInsertValuesForFile
+
+-- noinspection SqlResolveForFile
+
 use CDS_Send
 go
 SET ANSI_NULLS ON
@@ -73,7 +77,7 @@ begin
 		set @cust_send_id = SCOPE_IDENTITY()
 
 		insert into account_send (cust_send_id, send_status_id, account_id, html_template_version_id, language_id)
-		select @cust_send_id [ord_cust_send_id], @send_status_NOT_DRIVER [send_status_id], account_id, html_template_version_id, account_language_id
+		select @cust_send_id cust_send_id, @send_status_NOT_DRIVER [send_status_id], account_id, html_template_version_id, account_language_id
 		from #cust_send
 		where cust_id = @bank_contract_id
 		and html_template_type in ('BANK_MANDATE')

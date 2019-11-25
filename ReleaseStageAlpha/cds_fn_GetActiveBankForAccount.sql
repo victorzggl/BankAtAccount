@@ -27,12 +27,12 @@ begin
 		and abc.active_flag = 1
 		and bs.code = 'ACTIVE'
 		group by a.account_id, gabc.bank_id
-		order by gabc.bank_id
 	)
 	insert into @active_bank_contract (account_id, bank_id, bank_contract_id)
 	select aba.account_id, aba.bank_id, min(bank_contract_id) bank_contract_id
 	from aba
 	join (select top @bank_id_throttle bank_id  from aba ) limit on limit.bank_id = aba.bank_id
+	order by aba.bank_id
 
 
 	return;
