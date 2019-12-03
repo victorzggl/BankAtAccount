@@ -77,4 +77,11 @@ create unique index [UX_AccountIdBankContractId] on account_bank_contract(accoun
 
 	drop index CDS_515.dbo.bank.UQ_BankIDCustID
 
+	insert into ord_contact_type (code, name, description)
+	select 'CONTRACT_SIGNATORY', 'Contract Signatory', 'Contract Signatory if different from DM'
+
+	insert into contact_type (contact_type_id, code, name, description)
+	select 8,'CONTRACT_SIGNATORY', 'Contract Signatory', 'Contract Signatory if different from DM'
+
+
 -- existing tables
