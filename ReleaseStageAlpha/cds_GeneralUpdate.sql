@@ -43,14 +43,14 @@ create table dbo.bank_contract (
 	bank_reg_key               varchar(100)                                                 null,
 	error                      varchar(max)                                                 null,
 	constraint CK_bank_contract_start_date_end_date check ([start_date] <= [end_date] or [end_date] is null),
-	constraint [CK_bank_contract_signatory_personal_tax_num_signatory_business_tax_num] check (signatory_personal_tax_num <> '' )
+	constraint [CK_bank_contract_signatory_personal_tax_num] check (signatory_personal_tax_num <> '' )
 )
 
 
 
-create unique index IX_SignedDate on bank_contract(signed_date) include (bank_contract_id)
+create index IX_SignedDate on bank_contract(signed_date) include (bank_contract_id)
 
-create unique index IX_DocumentKeyContractIdBankId on bank_contract(document_key, contract_id, bank_id)  where (document_key is not null and bank_id is not null)
+create unique index UX_DocumentKeyContractIdBankId on bank_contract(document_key, contract_id, bank_id)  where (document_key is not null and bank_id is not null)
 
 
 
@@ -64,7 +64,8 @@ create table dbo.account_bank_contract (
 	constraint CK_account_bank_contract_start_date_end_date check ([start_date] <= [end_date] or [end_date] is null),
 	constraint [CK_account_bank_contract_end_date_active_flag] check ((end_date is not null and active_flag = 0 ) or end_date is null)
 )
-create unique index [IX_AccountIdEndDate] on account_bank_contract(account_id, end_date) where end_date is null
+create index [IX_ActiveAccountId] on account_bank_contract(account_id) where active_flag = 1
+create unique index [UX_AccountIdBankContractId] on account_bank_contract(account_id, bank_contract_id)
 
 
 -- existing tables
