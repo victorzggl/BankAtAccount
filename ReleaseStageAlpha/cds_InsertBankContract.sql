@@ -12,8 +12,6 @@ CREATE procedure dbo.[cds_InsertBankContract]
 	@bank_account_name varchar(100),
 	@signatory_contact_id int,
 	@signatory_email varchar(255),
-
-
 	@signatory_name varchar(101) = null,
 	@signatory_personal_tax_num varchar(100) = null,
 	@document_key varchar(100) = null,
@@ -121,15 +119,10 @@ begin
 		begin
 			begin try
 				exec cds_InsertBank
-				@cust_id = @cust_id,
-				@bank_type_id = @bank_type_id,
-				@bank_account = @bank_account,
 				@description = @description,
-				@signed_date = @signed_date,
-				@document_key = @document_key,
 				@bank_id = @bank_id output,
 				@error = @error output,
-				@bank_account_name = @bank_account_name
+				@bank_contract_id = @bank_contract_id
 			end try
 			begin catch
 				set @error = isnull(@error,'; failed to insert bank')

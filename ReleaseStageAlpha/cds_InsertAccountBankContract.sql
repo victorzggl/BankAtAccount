@@ -58,7 +58,7 @@ begin
 		select @previous_active_bank_contract_id = gabc.bank_contract_id, @previous_active_account_id = pabc.account_id
 		from account_bank_contract abc
 		join bank_contract bc on bc.bank_contract_id = abc.bank_contract_id
-		cross apply dbo.cds_fn_GetActiveBankForAccount (@account_id, null, null) gabc
+		cross apply dbo.cds_fn_GetActiveBankForAccount (@account_id, null, null, null) gabc
 		join account_bank_contract pabc on pabc.bank_contract_id = gabc.bank_contract_id
 		where gabc.account_id = pabc.account_id
 		and pabc.end_date is not null
