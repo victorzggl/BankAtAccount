@@ -23,7 +23,7 @@ if not exists(select 1 from account_bank_contract abc where account_id = @accoun
 else if @error = ''
 begin
 
-	update abc set end_date = getdate() -- TODO CASE STATEMENT
+	update abc set end_date = (case when end_date > cast( getdate() as date) then dateadd(day, 1, end_date) else getdate() end )
 	output inserted.bank_contract_id into @bank_contract (bank_contract_id)
 	from account_bank_contract abc
 	where abc.end_date is null
