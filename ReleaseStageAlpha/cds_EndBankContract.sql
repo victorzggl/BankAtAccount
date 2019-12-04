@@ -7,8 +7,6 @@ GO
 
 CREATE procedure dbo.[cds_EndBankContract]
 	@cust_id int = null,
-	@bank_account varchar(100) = null,
-	@document_key varchar(100) = null,
 	@bank_id int = null,
 	@bank_contract_id int = null,
 	@error varchar(500) = null output
@@ -20,24 +18,22 @@ declare @EndAccountBankContract_error varchar(500) = ''
 
 create table #bank_contract (bank_contract_id int primary key not null)
 
-if @cust_id is null and @bank_account is null and @document_key is null and @bank_id is null and @bank_contract_id is null
+if @cust_id is null and @bank_id is null and @bank_contract_id is null
 	set @error = 'check input (@cust_id is null and @bank_account is null and @document_key is null and @bank_id is null and @account_id is null)'
 
 
 else if @error = ''
 begin
 
-	update b set end_date = getdate(), b.bank_contract_status_id = s.bank_contract_status_id
+	update b set end_date = getdate(), b.bank_contract_status_id = s.bank_contract_status_id, updated_date = getdate()
 	output inserted.bank_contract_id into #bank_contract (bank_contract_id)
 	from bank_contract b
 	cross apply bank_contract_status s
 	where s.code = 'INACTIVE'
 	and b.bank_id = isnull(@bank_id, b.bank_id)
 	and b.bank_contract_id = isnull(@bank_contract_id, b.bank_contract_id)
-	and b.document_key = isnull(@document_key, b.document_key)
-	and b.bank_account = isnull(@bank_account, b.bank_account)
 	and b.cust_id = isnull(@cust_id, b.cust_id)
-	and b.end_date is not null
+	and b.end_date is null
 
 	if not exists(select 1 from #bank_contract )
 		set @error = '; no update done invalid input'

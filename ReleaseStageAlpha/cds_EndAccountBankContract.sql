@@ -6,7 +6,7 @@ SET QUOTED_IDENTIFIER ON
 GO
 
 CREATE procedure dbo.[cds_EndAccountBankContract]
-	@account_id int,
+	@account_id int = null,
 	@bank_contract_id int = null,
 	@error varchar(500) = null output
 as
@@ -23,10 +23,10 @@ if not exists(select 1 from account_bank_contract abc where account_id = @accoun
 else if @error = ''
 begin
 
-	update abc set end_date = getdate()
+	update abc set end_date = getdate() -- TODO CASE STATEMENT
 	output inserted.bank_contract_id into @bank_contract (bank_contract_id)
 	from account_bank_contract abc
-	where abc.end_date is not null
+	where abc.end_date is null
 	and abc.account_id = isnull(@account_id, account_id)
 	and abc.bank_contract_id = isnull(@bank_contract_id, bank_contract_id)
 
