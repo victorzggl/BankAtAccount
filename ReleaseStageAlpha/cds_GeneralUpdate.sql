@@ -79,7 +79,7 @@ create unique index [UX_AccountIdBankContractId] on account_bank_contract(accoun
 	go
 
 	alter table bank drop constraint [UQ_BankIDCustID]
-	drop index dbo.bank.UQ_BankIDCustID
+-- 	drop index dbo.bank.UQ_BankIDCustID
 
 	use CDS
 	go

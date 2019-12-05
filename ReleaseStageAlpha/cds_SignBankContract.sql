@@ -79,7 +79,7 @@ begin
 end
 
 if @error <> ''
-	select @bank_contract_status = isnull(@bank_contract_status, @contract_status_NEEDS_REVIEW), error = concat(@error, '{@document_key:','"',@document_key,'"',', @bank_contract_id:',@bank_contract_id,'}')
+	select @bank_contract_status = isnull(@bank_contract_status, @contract_status_NEEDS_REVIEW), @error = concat(@error, '{@document_key:','"',@document_key,'"',', @bank_contract_id:',@bank_contract_id,'}')
 
 -- set signatory_ord_contact_id in case updates are made to the contact
 update bc
