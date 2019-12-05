@@ -23,8 +23,8 @@ sent_date datetime null)
 
 if @allocate_only = 0
 begin
-insert into #invoice (account_invoice_id, cust_id, account_id, amount, bank_id, due_date, sent_date)
-select ai.account_invoice_id, ai.cust_id, ai.account_id, ai.total_amount - isnull(ap.payment_amount, 0), gabfa.bank_id, isnull(ai.override_due_date,ai.due_date), ai.sent_date
+insert into #invoice (account_invoice_id, cust_id, account_id, amount, bank_id, due_date, sent_date, bank_contract_id)
+select ai.account_invoice_id, ai.cust_id, ai.account_id, ai.total_amount - isnull(ap.payment_amount, 0), gabfa.bank_id, isnull(ai.override_due_date,ai.due_date), ai.sent_date, gabfa.bank_contract_id
 from account_invoice ai
 left join dbo.cds_fn_GetActiveBankForAccount (ai.account_id, ai.cust_id, @bank_id_throttle, null) gabfa on gabfa.account_id = ai.account_id
 
@@ -86,6 +86,7 @@ declare @cust_id int,
 		@payment_amount decimal(18,2),
 		@cust_payment_id int,
 		@account_payment_id int,
+		@bank_contract_id int,
 		@cust_payment_type_id int = (select cust_payment_type_id from cust_payment_type where code = 'INTERNAL_BANK_TRANSACTION')
 
 while exists (select * from #invoice i join #allocation a on i.account_id = a.account_id)
@@ -122,20 +123,20 @@ delete #invoice where amount = 0
 if @allocate_only = 0
 begin
 declare cust_payment_cursor cursor for
-select cust_id, sum(amount) [payment_amount]
+select cust_id, bank_contract_id, sum(amount) [payment_amount]
 from #invoice
 where bank_id is not null and bank_contract_id is not null
-group by cust_id
+group by cust_id, bank_contract_id
 
 open cust_payment_cursor
-fetch next from cust_payment_cursor into @cust_id, @payment_amount
+fetch next from cust_payment_cursor into @cust_id, @bank_contract_id, @payment_amount
 while @@FETCH_STATUS = 0
 begin
 	exec cds_InsertCustPayment @cust_id = @cust_id, @cust_payment_type_id = @cust_payment_type_id, @payment_amount = @payment_amount, @cust_payment_id = @cust_payment_id output, @bank_contract_id = @bank_contract_id
 
 	update #invoice set cust_payment_id = @cust_payment_id where cust_id = @cust_id
 
-	fetch next from cust_payment_cursor into @cust_id, @payment_amount
+	fetch next from cust_payment_cursor into @cust_id, @bank_contract_id, @payment_amount
 end
 
 close cust_payment_cursor
