@@ -14,7 +14,7 @@ declare @contract_status_ACTIVE int = (select contract_status_id from contract_s
 
 declare @bank_contract_status int, @bank_contract_id int, @previous_active_bank_contract_id int = 0, @previous_active_account_id int,  @cds_EndAccountBankContract_error varchar(500) = ''
 
-if nullif(@document_key,'')
+if nullif(@document_key,'') is null
 	set @error += '; document_key cannot be blank'
 else
 	set @bank_contract_id = (select document_key from bank_contract bc where document_key = @document_key)

@@ -68,7 +68,7 @@ begin
 
 	select @bank_contract_id = bc.bank_contract_id, @contract_id = c.contract_id, @signed_date = coalesce(bc.signed_date, c.signed_date, @signed_date), @bank_account = coalesce(bc.bank_account, c.bank_account, @bank_account), @bank_id = bc.bank_id, @signatory_email = coalesce(bc.signatory_email, c.contract_email, @signatory_email)
 	from bank_contract bc
-	join cds_fn_GetActiveBankContract (null, null, null ) gabc on gabc.bank_contract_id = bc.bank_contract_id
+	cross apply dbo.cds_fn_GetActiveBankContract (null, null, bc.bank_contract_id) gabc
 	full join contract c on c.document_key = bc.document_key
 	where (bc.document_key = @document_key or c.document_key = @document_key)
 
@@ -85,12 +85,14 @@ begin
 		begin try
 			insert into bank_contract (bank_contract_status_id, cust_id, start_date, document_key, signatory_email, signatory_name, signatory_contact_id, signatory_personal_tax_num, bank_account_name, bank_account, contract_id, bank_type_id, bank_id)
 			select @bank_contract_status, @cust_id, @signed_date start_date, @document_key, @signatory_email, @signatory_name, @signatory_contact_id, @signatory_personal_tax_num, @bank_account_name, @bank_account, @contract_id, @bank_type_id, @bank_id
+
+			set @bank_contract_id = scope_identity()
+
 		end try
 		begin catch
 			set @error = concat(error_message(), '; Failed to insert bank_contract {document_key: "', @document_key, '"} ')
 		end catch
 
-		set @bank_contract_id = scope_identity()
 
 		if @contract_id is not null
 		begin
@@ -130,10 +132,10 @@ begin
 
 			set @error = isnull(@error, case when @bank_id is null then 'cds_InsertBank did not return a @bank_id' else '' end)
 
-			update bc set bank_id = @bank_id, bank_reg_key = dbo.cds_fn_GetBankRegKey (@bank_contract_id)
-			from bank_contract bc
-			where bank_contract_id = @bank_contract_id
-			and @error = ''
+			if @error = ''
+				update bc set bank_id = @bank_id, bank_reg_key = dbo.cds_fn_GetBankRegKey (@bank_contract_id)
+				from bank_contract bc
+				where bank_contract_id = @bank_contract_id
 
 		if @error = ''
 			commit transaction
@@ -151,21 +153,6 @@ begin
 	end
 end
 
-
-
-
-
-
-
-
-/*select *
-into #bank
-from bank b
-select *
-into #contract
-from contract b
-delete c3 from #contract c3 where document_key = 'Ncxugo3BQcReZmKMhSJ8pE'
-delete c3 from #bank  c3 where document_key = '22e9UBgdfAi9xcKGf6cyYR'*/
 
 go
 

@@ -21,10 +21,10 @@ if not exists (select * from bank_contract a where bank_contract_id = @bank_cont
 if @error = ''
 begin
 	if exists(select * from bank_contract bc where bank_contract_id = @bank_contract_id and (contract_id is not null and bc.bank_contract_status_id <> @bank_contract_status_ACTIVE))
-		set @error += '; bank_contract_status must be in ACTIVE'
+		set @error += '; bank_contract_status must be ACTIVE'
 
 	else if exists(select * from bank_contract bc where bank_contract_id = @bank_contract_id and (bank_contract_status_id <> @bank_contract_status_NEW))
-		set @error += '; bank_contract_status must be in NEW'
+		set @error += '; bank_contract_status must be NEW'
 
 -- 	else if exists(select * from account_bank_contract where bank_contract_id = @bank_contract_id and account_id = @account_id)
 -- 		set @error += '; account_bank_contract already exists'
@@ -33,18 +33,20 @@ begin
 		set @error += '; cust_id in bank_contract must match cust_id of the account'
 end
 
+select @account_bank_contract_id = account_bank_contract_id
+from account_bank_contract abc
+where abc.bank_contract_id = @bank_contract_id
+and abc.account_id = @account_id
 
-if @error = ''
+if @error = '' and @account_bank_contract_id is null
 begin
 	insert into account_bank_contract (account_id, bank_contract_id, start_date, end_date, active_flag)
 	select @account_id, bank_contract_id, start_date, end_date, case when end_date is null then 1 else 0 end active_flag
 	from bank_contract bc
 	where bc.bank_contract_id = @bank_contract_id
 	and (bc.contract_id is not null and bc.bank_contract_status_id = @bank_contract_status_ACTIVE or bc.bank_contract_status_id = @bank_contract_status_NEW)
-	and not exists(select 1 from account_bank_contract abc where abc.bank_contract_id = @bank_contract_id and abc.account_id = @account_id)
 
 	set @account_bank_contract_id = scope_identity()
-
 
 end
 
@@ -67,7 +69,7 @@ begin
 		and bc.bank_id = gabc.bank_id
 
 		begin try
-			if @previous_active_bank_contract_id is not null
+			if nullif(@previous_active_bank_contract_id, 0) is not null
 				exec cds_EndAccountBankContract @account_id = @previous_active_account_id, @bank_contract_id = @previous_active_bank_contract_id, @error = @cds_EndAccountBankContract_error output
 		end try
 		begin catch

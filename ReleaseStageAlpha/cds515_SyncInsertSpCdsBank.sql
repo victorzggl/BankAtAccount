@@ -5,8 +5,8 @@ GO
 SET QUOTED_IDENTIFIER ON
 GO
 alter procedure dbo.cds515_SyncInsertSpCdsBank as
-
-declare
+print 'I am deprecated'
+/*declare
 	@max_id                         int, @min_id int,
 	@csr_id                         int
 	, @cust_id                      int
@@ -57,6 +57,6 @@ while @min_id <= @max_id
 		end catch
 		set @min_id += 1
 	end
-
+*/
 go
 

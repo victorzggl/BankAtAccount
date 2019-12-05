@@ -7,9 +7,10 @@ GO
 create function dbo.cds_fn_GetActiveBankForAccount (@account_id int, @cust_id int, @bank_id_throttle int, @bank_account varchar(100) = null)
 returns @active_bank_contract table
 (
-	account_id int not null primary key,
+	account_id       int not null,
 	bank_id          int not null,
-	bank_contract_id int not null
+	bank_contract_id int not null,
+	primary key (account_id, bank_id)
 )
 as
 begin
@@ -30,12 +31,9 @@ begin
 		group by a.account_id, gabc.bank_id
 	)
 	insert into @active_bank_contract (account_id, bank_id, bank_contract_id)
-	select aba.account_id, aba.bank_id, min(bank_contract_id) bank_contract_id
+	select aba.account_id, aba.bank_id, aba.bank_contract_id
 	from aba
-	join (select top (@bank_id_throttle) bank_id  from aba ) limit on limit.bank_id = aba.bank_id
-	group by aba.account_id, aba.bank_id
-	order by aba.bank_id
-
+	join (select top (@bank_id_throttle) bank_id  from aba order by bank_id desc ) limit on limit.bank_id = aba.bank_id
 
 	return;
 end
