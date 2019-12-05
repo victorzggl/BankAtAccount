@@ -75,7 +75,11 @@ create unique index [UX_AccountIdBankContractId] on account_bank_contract(accoun
 
 	alter table dbo.bank_transaction add bank_contract_id int null constraint [FK_bank_transaction_bank_contract] references bank_contract
 
-	drop index CDS_515.dbo.bank.UQ_BankIDCustID
+	use CDS_515
+	alter table bank drop constraint [UQ_BankIDCustID]
+	drop index dbo.bank.UQ_BankIDCustID
+
+	use CDS
 
 	insert into ord_contact_type (code, name, description)
 	select 'CONTRACT_SIGNATORY', 'Contract Signatory', 'Contract Signatory if different from DM'

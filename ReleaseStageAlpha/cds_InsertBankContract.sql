@@ -68,7 +68,7 @@ begin
 
 	select @bank_contract_id = bc.bank_contract_id, @contract_id = c.contract_id, @signed_date = coalesce(bc.signed_date, c.signed_date, @signed_date), @bank_account = coalesce(bc.bank_account, c.bank_account, @bank_account), @bank_id = bc.bank_id, @signatory_email = coalesce(bc.signatory_email, c.contract_email, @signatory_email)
 	from bank_contract bc
-	join cds_fn_GetActiveBankContract (null, null ) gabc on gabc.bank_contract_id = bc.bank_contract_id
+	join cds_fn_GetActiveBankContract (null, null, null ) gabc on gabc.bank_contract_id = bc.bank_contract_id
 	full join contract c on c.document_key = bc.document_key
 	where (bc.document_key = @document_key or c.document_key = @document_key)
 

@@ -65,7 +65,7 @@ begin
 end
 
 if @error <> ''
-	set @error = concat(@error, '; {bank_id:', @bank_id, ',bank_contract_id:', @bank_contract_id, 'document_key:"', @document_key, '"',',@bank_account:"', @bank_account, '"', '}')
+	set @error = concat(@error, '; {bank_id:', @bank_id, ',bank_contract_id:', @bank_contract_id, '}')
 
 
 go

@@ -9,7 +9,7 @@ returns @active_bank_contract table
 (
 	account_id int not null primary key,
 	bank_id          int not null,
-	bank_contract_id int not null,
+	bank_contract_id int not null
 )
 as
 begin
@@ -32,7 +32,8 @@ begin
 	insert into @active_bank_contract (account_id, bank_id, bank_contract_id)
 	select aba.account_id, aba.bank_id, min(bank_contract_id) bank_contract_id
 	from aba
-	join (select top @bank_id_throttle bank_id  from aba ) limit on limit.bank_id = aba.bank_id
+	join (select top (@bank_id_throttle) bank_id  from aba ) limit on limit.bank_id = aba.bank_id
+	group by aba.account_id, aba.bank_id
 	order by aba.bank_id
 
 
