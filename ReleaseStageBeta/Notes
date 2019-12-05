@@ -1,0 +1,8 @@
+TODO @MatteoG:  inserting an account_id for a bank_contract that does not belong to the cust_id of the bank_contract is not allowed
+    IE cust A cannot add  Cust B account's on his bank_contract .
+    They can get around this one of two ways:
+        1. cust A's bank_account  inserted in  cust B's  bank_contract cust B signs bank_contract.
+            The contract would flow through as normal
+        2. Cust A signs Cust B's bank_contract with Cust A's bank_account.
+
+
